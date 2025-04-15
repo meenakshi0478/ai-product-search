@@ -29,10 +29,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.category = :category ORDER BY p.createdAt DESC")
     List<Product> findLatestProductsByCategory(@Param("category") String category);
 
-    @Query("SELECT p FROM Product p WHERE p.name = :name AND p.category = :category AND p.brand = :brand")
+    @Query("SELECT p FROM Product p WHERE p.name = :name AND p.category = :category AND p.brand = :brand AND p.price = :price")
     List<Product> findByNameAndCategoryAndBrand(
         @Param("name") String name,
         @Param("category") String category,
-        @Param("brand") String brand
+        @Param("brand") String brand,
+        @Param("price") BigDecimal price
     );
 } 

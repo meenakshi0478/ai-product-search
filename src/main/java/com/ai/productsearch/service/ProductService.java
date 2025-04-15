@@ -148,7 +148,8 @@ public class ProductService {
             List<Product> duplicates = productRepository.findByNameAndCategoryAndBrand(
                 product.getName(),
                 product.getCategory(),
-                product.getBrand()
+                product.getBrand(),
+                product.getPrice()
             );
             
             if (duplicates.size() > 1) {

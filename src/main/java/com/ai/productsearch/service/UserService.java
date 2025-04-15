@@ -1,6 +1,7 @@
 package com.ai.productsearch.service;
 
 import com.ai.productsearch.dto.UserDTO;
+import com.ai.productsearch.exception.EmailAlreadyExistsException;
 import com.ai.productsearch.exception.ResourceNotFoundException;
 import com.ai.productsearch.model.User;
 import com.ai.productsearch.model.UserRole;
@@ -27,7 +28,7 @@ public class UserService {
         
         if (userRepository.existsByEmail(userDTO.getEmail())) {
             log.warn("Registration failed: Email {} already exists", userDTO.getEmail());
-            throw new IllegalArgumentException("Email already exists");
+            throw new EmailAlreadyExistsException("Email already exists");
         }
 
         User user = new User();
