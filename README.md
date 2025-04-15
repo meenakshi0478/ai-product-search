@@ -18,6 +18,14 @@ A Spring Boot application that provides a RESTful API for product search and man
   - Get products by category
   - Remove duplicate products
 
+- **AI-Powered Smart Search**
+  - Semantic search using OpenAI embeddings
+  - Fuzzy search for handling typos
+  - Synonym matching
+  - Category and price range filtering
+  - Sorting by relevance and other criteria
+  - Returns top 5 most relevant results
+
 - **Error Handling**
   - Global exception handling
   - Consistent error response format
@@ -29,6 +37,48 @@ A Spring Boot application that provides a RESTful API for product search and man
   - JWT token authentication
   - Secure endpoints
   - Input validation
+
+## Prerequisites
+
+- Java 17 or higher
+- PostgreSQL database
+- OpenAI API key
+- Pinecone account and API key
+
+## Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/meenakshi0478/ai-product-search.git
+   cd ai-product-search
+   ```
+
+2. **Configure environment variables**
+   Create a `.env` file in the project root:
+   ```bash
+   # Database Configuration
+   DATABASE_URL=jdbc:postgresql://localhost:5432/your_database
+   DATABASE_USERNAME=your_username
+   DATABASE_PASSWORD=your_password
+
+   # JWT Configuration
+   JWT_SECRET=your_jwt_secret
+   JWT_EXPIRATION=86400000
+
+   # OpenAI Configuration
+   OPENAI_API_KEY=your_openai_api_key
+
+   # Pinecone Configuration
+   PINECONE_API_KEY=your_pinecone_api_key
+   PINECONE_ENVIRONMENT=your_environment
+   PINECONE_INDEX=your_index
+   ```
+
+3. **Build and run the application**
+   ```bash
+   mvn clean install
+   mvn spring-boot:run
+   ```
 
 ## API Endpoints
 
@@ -51,6 +101,10 @@ A Spring Boot application that provides a RESTful API for product search and man
     "password": "password123"
   }
   ```
+
+### AI-Powered Search
+
+- `POST /api/ai/search` - Smart search with AI capabilities
 
 ### Products (Admin Only)
 
@@ -87,6 +141,31 @@ A Spring Boot application that provides a RESTful API for product search and man
 - `GET /api/products/price-range?minPrice=10&maxPrice=100` - Get products by price range
 - `GET /api/products/latest` - Get latest products
 - `GET /api/products/latest/{category}` - Get latest products by category
+
+## AI Search Features
+
+### Semantic Search
+The AI search uses OpenAI's text-embedding-ada-002 model to convert search queries into vector embeddings. This enables semantic understanding of search terms, allowing for more relevant results.
+
+### Fuzzy Search
+The system handles typos and minor variations in search terms through:
+- Levenshtein distance-based matching
+- Phonetic matching
+- Common typo patterns
+
+### Synonym Matching
+The search recognizes related terms through:
+- Pre-defined synonym mappings
+- Contextual understanding from embeddings
+- Domain-specific terminology
+
+### Filters & Sorting
+Search results can be filtered and sorted by:
+- Category
+- Price range
+- Relevance score
+- Popularity
+- Date added
 
 ## Response Format
 
@@ -142,6 +221,7 @@ The API provides detailed error messages for various scenarios:
 5. **Server Errors** (500 Internal Server Error)
    - Unexpected errors
    - Database errors
+   - AI service errors
 
 ## Security
 
@@ -151,37 +231,6 @@ The API provides detailed error messages for various scenarios:
 - Input validation is performed on all requests
 - SQL injection prevention through parameterized queries
 - XSS protection through proper data sanitization
-
-## Getting Started
-
-1. Clone the repository
-2. Configure the database in `application.properties`
-3. Build the project: `mvn clean install`
-4. Run the application: `mvn spring-boot:run`
-
-## Dependencies
-
-- Spring Boot
-- Spring Security
-- Spring Data JPA
-- JWT
-- Lombok
-- MySQL
-- Maven
-
-## Configuration
-
-Update `application.properties` with your database and JWT settings:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/your_database
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-spring.jpa.hibernate.ddl-auto=update
-
-jwt.secret=your_jwt_secret
-jwt.expiration=86400000
-```
 
 ## Contributing
 
