@@ -26,6 +26,8 @@ public class ProductDTO {
 
     private String brand;
 
+    private String upc;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

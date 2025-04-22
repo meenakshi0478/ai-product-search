@@ -6,6 +6,10 @@ import com.ai.productsearch.service.AuthService;
 import com.ai.productsearch.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -73,85 +77,102 @@ public class ProductController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchProducts(@RequestParam String query) {
+    public ResponseEntity<?> searchProducts(
+            @RequestParam String query,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         log.info("Searching products with query: {}", query);
-        List<ProductDTO> products = productService.searchProducts(query);
-        if (products.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                "status", "info",
-                "message", "No products found matching your search criteria",
-                "query", query
-            ));
-        }
+        Page<ProductDTO> products = productService.searchProducts(query, pageable);
         return ResponseEntity.ok(Map.of(
             "status", "success",
-            "data", products
+            "data", products.getContent(),
+            "pagination", Map.of(
+                "totalElements", products.getTotalElements(),
+                "totalPages", products.getTotalPages(),
+                "currentPage", products.getNumber(),
+                "pageSize", products.getSize(),
+                "hasNext", products.hasNext(),
+                "hasPrevious", products.hasPrevious()
+            )
         ));
     }
 
     @GetMapping("/category/{category}")
-    public ResponseEntity<?> getProductsByCategory(@PathVariable String category) {
+    public ResponseEntity<?> getProductsByCategory(
+            @PathVariable String category,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         log.info("Getting products by category: {}", category);
-        List<ProductDTO> products = productService.findByCategory(category);
-        if (products.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                "status", "info",
-                "message", "No products found in category: " + category
-            ));
-        }
+        Page<ProductDTO> products = productService.findByCategory(category, pageable);
         return ResponseEntity.ok(Map.of(
             "status", "success",
-            "data", products
+            "data", products.getContent(),
+            "pagination", Map.of(
+                "totalElements", products.getTotalElements(),
+                "totalPages", products.getTotalPages(),
+                "currentPage", products.getNumber(),
+                "pageSize", products.getSize(),
+                "hasNext", products.hasNext(),
+                "hasPrevious", products.hasPrevious()
+            )
         ));
     }
 
     @GetMapping("/price-range")
     public ResponseEntity<?> getProductsByPriceRange(
             @RequestParam BigDecimal minPrice,
-            @RequestParam BigDecimal maxPrice) {
+            @RequestParam BigDecimal maxPrice,
+            @PageableDefault(sort = "price", direction = Sort.Direction.ASC) Pageable pageable) {
         log.info("Getting products by price range: {} - {}", minPrice, maxPrice);
-        List<ProductDTO> products = productService.findByPriceRange(minPrice, maxPrice);
-        if (products.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                "status", "info",
-                "message", "No products found in the specified price range"
-            ));
-        }
+        Page<ProductDTO> products = productService.findByPriceRange(minPrice, maxPrice, pageable);
         return ResponseEntity.ok(Map.of(
             "status", "success",
-            "data", products
+            "data", products.getContent(),
+            "pagination", Map.of(
+                "totalElements", products.getTotalElements(),
+                "totalPages", products.getTotalPages(),
+                "currentPage", products.getNumber(),
+                "pageSize", products.getSize(),
+                "hasNext", products.hasNext(),
+                "hasPrevious", products.hasPrevious()
+            )
         ));
     }
 
     @GetMapping("/latest")
-    public ResponseEntity<?> getLatestProducts() {
+    public ResponseEntity<?> getLatestProducts(
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         log.info("Getting latest products");
-        List<ProductDTO> products = productService.getLatestProducts();
-        if (products.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                "status", "info",
-                "message", "No products available"
-            ));
-        }
+        Page<ProductDTO> products = productService.getLatestProducts(pageable);
         return ResponseEntity.ok(Map.of(
             "status", "success",
-            "data", products
+            "data", products.getContent(),
+            "pagination", Map.of(
+                "totalElements", products.getTotalElements(),
+                "totalPages", products.getTotalPages(),
+                "currentPage", products.getNumber(),
+                "pageSize", products.getSize(),
+                "hasNext", products.hasNext(),
+                "hasPrevious", products.hasPrevious()
+            )
         ));
     }
 
     @GetMapping("/latest/{category}")
-    public ResponseEntity<?> getLatestProductsByCategory(@PathVariable String category) {
+    public ResponseEntity<?> getLatestProductsByCategory(
+            @PathVariable String category,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         log.info("Getting latest products by category: {}", category);
-        List<ProductDTO> products = productService.getLatestProductsByCategory(category);
-        if (products.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                "status", "info",
-                "message", "No products found in category: " + category
-            ));
-        }
+        Page<ProductDTO> products = productService.getLatestProductsByCategory(category, pageable);
         return ResponseEntity.ok(Map.of(
             "status", "success",
-            "data", products
+            "data", products.getContent(),
+            "pagination", Map.of(
+                "totalElements", products.getTotalElements(),
+                "totalPages", products.getTotalPages(),
+                "currentPage", products.getNumber(),
+                "pageSize", products.getSize(),
+                "hasNext", products.hasNext(),
+                "hasPrevious", products.hasPrevious()
+            )
         ));
     }
 

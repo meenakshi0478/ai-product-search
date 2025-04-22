@@ -7,6 +7,9 @@ import com.ai.productsearch.model.User;
 import com.ai.productsearch.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,20 +37,34 @@ public class ProductService {
             throw new IllegalArgumentException("Product price must be greater than zero");
         }
 
+        if (productDTO.getUpc() == null || productDTO.getUpc().trim().isEmpty()) {
+            throw new IllegalArgumentException("UPC code is required");
+        }
+
+        // Check if UPC already exists
+        if (productRepository.existsByUpc(productDTO.getUpc())) {
+            throw new IllegalArgumentException("A product with this UPC code already exists");
+        }
+
         Product product = new Product();
         product.setName(productDTO.getName());
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setCategory(productDTO.getCategory());
         product.setBrand(productDTO.getBrand());
+        product.setUpc(productDTO.getUpc());
         product.setCreatedBy(user);
         product.setUpdatedBy(user);
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
 
-        Product savedProduct = productRepository.save(product);
-        log.info("Product created successfully with ID: {}", savedProduct.getId());
-        return convertToDTO(savedProduct);
+        try {
+            Product savedProduct = productRepository.save(product);
+            log.info("Product created successfully with ID: {}", savedProduct.getId());
+            return convertToDTO(savedProduct);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("A product with this UPC code already exists");
+        }
     }
 
     @Transactional
@@ -68,14 +85,27 @@ public class ProductService {
             product.setPrice(productDTO.getPrice());
         }
 
+        if (productDTO.getUpc() != null && !productDTO.getUpc().trim().isEmpty()) {
+            // Check if the new UPC is different and already exists
+            if (!productDTO.getUpc().equals(product.getUpc()) && 
+                productRepository.existsByUpc(productDTO.getUpc())) {
+                throw new IllegalArgumentException("A product with this UPC code already exists");
+            }
+            product.setUpc(productDTO.getUpc());
+        }
+
         product.setDescription(productDTO.getDescription());
         product.setCategory(productDTO.getCategory());
         product.setBrand(productDTO.getBrand());
         product.setUpdatedAt(LocalDateTime.now());
 
-        Product updatedProduct = productRepository.save(product);
-        log.info("Product updated successfully with ID: {}", updatedProduct.getId());
-        return convertToDTO(updatedProduct);
+        try {
+            Product updatedProduct = productRepository.save(product);
+            log.info("Product updated successfully with ID: {}", updatedProduct.getId());
+            return convertToDTO(updatedProduct);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("A product with this UPC code already exists");
+        }
     }
 
     @Transactional
@@ -90,23 +120,19 @@ public class ProductService {
         log.info("Product deleted successfully with ID: {}", id);
     }
 
-    public List<ProductDTO> searchProducts(String query) {
+    public Page<ProductDTO> searchProducts(String query, Pageable pageable) {
         log.info("Searching products with query: {}", query);
-        List<Product> products = productRepository.searchProducts(query);
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return productRepository.searchProducts(query, pageable)
+                .map(this::convertToDTO);
     }
 
-    public List<ProductDTO> findByCategory(String category) {
+    public Page<ProductDTO> findByCategory(String category, Pageable pageable) {
         log.info("Finding products by category: {}", category);
-        List<Product> products = productRepository.findByCategory(category);
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return productRepository.findByCategory(category, pageable)
+                .map(this::convertToDTO);
     }
 
-    public List<ProductDTO> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
+    public Page<ProductDTO> findByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
         log.info("Finding products by price range: {} - {}", minPrice, maxPrice);
         
         if (minPrice == null || maxPrice == null) {
@@ -117,47 +143,39 @@ public class ProductService {
             throw new IllegalArgumentException("minPrice cannot be greater than maxPrice");
         }
         
-        List<Product> products = productRepository.findByPriceBetween(minPrice, maxPrice);
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return productRepository.findByPriceBetween(minPrice, maxPrice, pageable)
+                .map(this::convertToDTO);
     }
 
-    public List<ProductDTO> getLatestProducts() {
+    public Page<ProductDTO> getLatestProducts(Pageable pageable) {
         log.info("Getting latest products");
-        List<Product> products = productRepository.findLatestProducts();
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return productRepository.findLatestProducts(pageable)
+                .map(this::convertToDTO);
     }
 
-    public List<ProductDTO> getLatestProductsByCategory(String category) {
+    public Page<ProductDTO> getLatestProductsByCategory(String category, Pageable pageable) {
         log.info("Getting latest products by category: {}", category);
-        List<Product> products = productRepository.findLatestProductsByCategory(category);
-        return products.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return productRepository.findLatestProductsByCategory(category, pageable)
+                .map(this::convertToDTO);
     }
 
     @Transactional
     public void removeDuplicateProducts() {
-        log.info("Starting duplicate product cleanup");
+        log.info("Starting duplicate product cleanup based on UPC");
         List<Product> allProducts = productRepository.findAll();
         
         for (Product product : allProducts) {
-            List<Product> duplicates = productRepository.findByNameAndCategoryAndBrand(
-                product.getName(),
-                product.getCategory(),
-                product.getBrand(),
-                product.getPrice()
-            );
+            List<Product> duplicates = productRepository.findByUpc(product.getUpc());
             
             if (duplicates.size() > 1) {
-                // Keep the first product and delete the rest
+                // Keep the oldest product (first in the list due to ORDER BY createdAt ASC)
+                Product oldestProduct = duplicates.get(0);
+                
+                // Delete all other duplicates
                 for (int i = 1; i < duplicates.size(); i++) {
                     Product duplicate = duplicates.get(i);
                     productRepository.delete(duplicate);
-                    log.info("Deleted duplicate product with ID: {}", duplicate.getId());
+                    log.info("Deleted duplicate product with ID: {} (UPC: {})", duplicate.getId(), duplicate.getUpc());
                 }
             }
         }
@@ -172,6 +190,7 @@ public class ProductService {
                 .price(product.getPrice())
                 .category(product.getCategory())
                 .brand(product.getBrand())
+                .upc(product.getUpc())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .build();

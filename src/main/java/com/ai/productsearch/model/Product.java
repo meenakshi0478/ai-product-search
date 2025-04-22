@@ -16,7 +16,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "products")
+@Table(name = "products", uniqueConstraints = {
+    @UniqueConstraint(columnNames = "upc")
+})
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,6 +38,9 @@ public class Product {
 
     @Column(nullable = false)
     private String brand;
+
+    @Column(nullable = false, unique = true)
+    private String upc;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
